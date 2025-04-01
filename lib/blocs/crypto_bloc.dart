@@ -1,57 +1,86 @@
 import 'dart:async';
 import 'package:bloc/bloc.dart';
 import 'package:flutter/material.dart';
+import 'package:equatable/equatable.dart'; // Importar Equatable
 import '../models/crypto.dart';
 import '../services/crypto_service.dart';
 import '../services/websocket_prices_service.dart';
 
-/// Definición de eventos para el BLoC de criptomonedas
-abstract class CryptoEvent {}
+/// Definición de eventos para el BLoC de criptomonedas, usando Equatable
+abstract class CryptoEvent extends Equatable {
+  const CryptoEvent();
+
+  @override
+  List<Object?> get props => [];
+}
 
 /// Evento que se dispara al cargar la lista inicial de criptomonedas
-class LoadCryptos extends CryptoEvent {}
+class LoadCryptos extends CryptoEvent {
+  const LoadCryptos();
+
+  @override
+  List<Object?> get props => [];
+}
 
 /// Evento que se dispara al recibir nuevos precios vía WebSocket
 class PricesUpdated extends CryptoEvent {
   final Map<String, double> prices;
 
-  /// Constructor para inicializar el evento con los precios actualizados
-  PricesUpdated({required this.prices});
+  const PricesUpdated({required this.prices});
+
+  @override
+  List<Object?> get props => [prices];
 }
 
-/// Definición de estados que puede emitir el BLoC de criptomonedas
-abstract class CryptoState {}
+/// Evento para reconectar el WebSocket
+class ReconnectWebSocket extends CryptoEvent {
+  const ReconnectWebSocket();
+
+  @override
+  List<Object?> get props => [];
+}
+
+/// Definición de estados que puede emitir el BLoC de criptomonedas, usando Equatable
+abstract class CryptoState extends Equatable {
+  const CryptoState();
+
+  @override
+  List<Object?> get props => [];
+}
 
 /// Estado que representa que las criptomonedas están en proceso de carga
-class CryptoLoading extends CryptoState {}
+class CryptoLoading extends CryptoState {
+  const CryptoLoading();
 
-class ReconnectWebSocket extends CryptoEvent {}
+  @override
+  List<Object?> get props => [];
+}
 
 /// Estado que indica que la carga de criptomonedas se ha completado
 class CryptoLoaded extends CryptoState {
   final List<Crypto> cryptos;
   final Map<String, Color> priceColors;
 
-  /// Constructor para inicializar el estado con la lista de criptomonedas y colores
-  CryptoLoaded({required this.cryptos, required this.priceColors});
+  const CryptoLoaded({required this.cryptos, required this.priceColors});
 
-  get prices => null;
+  @override
+  List<Object?> get props => [cryptos, priceColors];
 }
 
 /// Estado que representa un error durante la carga o actualización de criptomonedas
 class CryptoError extends CryptoState {
   final String message;
 
-  /// Constructor que permite especificar el mensaje de error
-  CryptoError({required this.message});
+  const CryptoError({required this.message});
+
+  @override
+  List<Object?> get props => [message];
 }
 
 /// BLoC que gestiona la carga y actualización de criptomonedas en tiempo real
 class CryptoBloc extends Bloc<CryptoEvent, CryptoState> {
-  final CryptoService
-  _cryptoService; // Servicio para obtener datos de criptomonedas
-  final WebSocketPricesService
-  _pricesService; // Servicio para recibir precios en tiempo real
+  final CryptoService _cryptoService; // Servicio para obtener datos de criptomonedas
+  final WebSocketPricesService _pricesService; // Servicio para recibir precios en tiempo real
 
   /// Mapa que almacena los precios previos de cada criptomoneda para detectar cambios
   final Map<String, double> _previousPrices = {};
@@ -63,20 +92,20 @@ class CryptoBloc extends Bloc<CryptoEvent, CryptoState> {
   CryptoBloc({
     required CryptoService cryptoService,
     required WebSocketPricesService pricesService,
-  }) : _cryptoService = cryptoService,
-       _pricesService = pricesService,
-       super(CryptoLoading()) {
+  })  : _cryptoService = cryptoService,
+        _pricesService = pricesService,
+        super(const CryptoLoading()) {
     // Registrar el evento para cargar las criptomonedas
     on<LoadCryptos>(_onLoadCryptos);
 
     // Registrar el evento para actualizar los precios
     on<PricesUpdated>(_onPricesUpdated);
 
-    // Registra el nuevo evento para reconexión
+    // Registra el evento para reconexión
     on<ReconnectWebSocket>(_onReconnectWebSocket);
 
     // Disparar el evento inicial de carga de criptomonedas al crear el BLoC
-    add(LoadCryptos());
+    add(const LoadCryptos());
   }
 
   /// Método que maneja el evento de carga inicial de criptomonedas
@@ -125,34 +154,33 @@ class CryptoBloc extends Bloc<CryptoEvent, CryptoState> {
       final Map<String, Color> updatedColors = {};
 
       // Actualizar los precios y colores de cada criptomoneda
-      final List<Crypto> updatedCryptos =
-          currentState.cryptos.map((crypto) {
-            final double oldPrice = _previousPrices[crypto.id] ?? crypto.price;
-            final double newPrice = event.prices[crypto.id] ?? crypto.price;
+      final List<Crypto> updatedCryptos = currentState.cryptos.map((crypto) {
+        final double oldPrice = _previousPrices[crypto.id] ?? crypto.price;
+        final double newPrice = event.prices[crypto.id] ?? crypto.price;
 
-            // Determinar el color basado en la variación de precio
-            Color color = Colors.black;
-            if (newPrice > oldPrice) {
-              color = Colors.green; // Verde si el precio sube
-            } else if (newPrice < oldPrice) {
-              color = Colors.red; // Rojo si el precio baja
-            }
+        // Determinar el color basado en la variación de precio
+        Color color = Colors.black;
+        if (newPrice > oldPrice) {
+          color = Colors.green; // Verde si el precio sube
+        } else if (newPrice < oldPrice) {
+          color = Colors.red; // Rojo si el precio baja
+        }
 
-            // Actualizar el color en el mapa temporal
-            updatedColors[crypto.id] = color;
+        // Actualizar el color en el mapa temporal
+        updatedColors[crypto.id] = color;
 
-            // Almacenar el precio actualizado para futuras comparaciones
-            _previousPrices[crypto.id] = newPrice;
+        // Almacenar el precio actualizado para futuras comparaciones
+        _previousPrices[crypto.id] = newPrice;
 
-            // Devolver una nueva instancia de la criptomoneda con el precio actualizado
-            return Crypto(
-              id: crypto.id,
-              name: crypto.name,
-              symbol: crypto.symbol,
-              price: newPrice,
-              logoUrl: crypto.logoUrl,
-            );
-          }).toList();
+        // Devolver una nueva instancia de la criptomoneda con el precio actualizado
+        return Crypto(
+          id: crypto.id,
+          name: crypto.name,
+          symbol: crypto.symbol,
+          price: newPrice,
+          logoUrl: crypto.logoUrl,
+        );
+      }).toList();
 
       // Ordenar las criptomonedas por precio en orden descendente
       updatedCryptos.sort((a, b) => b.price.compareTo(a.price));
@@ -171,8 +199,7 @@ class CryptoBloc extends Bloc<CryptoEvent, CryptoState> {
 
     int retryCount = 0; // Contador de reintentos
     const maxRetries = 5; // Número máximo de intentos de reconexión
-    const backoffFactor =
-        2; // Factor de aumento exponencial del tiempo de espera
+    const backoffFactor = 2; // Factor de aumento exponencial del tiempo de espera
     int delay = 1; // Tiempo inicial de espera en segundos
 
     while (retryCount < maxRetries) {
@@ -189,11 +216,11 @@ class CryptoBloc extends Bloc<CryptoEvent, CryptoState> {
           add(PricesUpdated(prices: prices));
         });
 
-        return; // Si la reconexión es exitosa, sale del método
+        return; // Si la reconexión es exitosa, salir del método
       } catch (e) {
         // Si falla la reconexión, incrementar el contador de reintentos
         retryCount++;
-        // Aumenta el tiempo de espera exponencialmente (1, 2, 4, 8, 16 segundos, etc.)
+        // Aumentar el tiempo de espera exponencialmente (1, 2, 4, 8, 16 segundos, etc.)
         delay *= backoffFactor;
       }
     }
