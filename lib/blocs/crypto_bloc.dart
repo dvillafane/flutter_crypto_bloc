@@ -1,7 +1,8 @@
 import 'dart:async';
+import 'dart:math'; // Se agrega para calcular el jitter
 import 'package:bloc/bloc.dart';
 import 'package:flutter/material.dart';
-import 'package:equatable/equatable.dart'; // Importar Equatable
+import 'package:equatable/equatable.dart';
 import '../models/crypto.dart';
 import '../services/crypto_service.dart';
 import '../services/websocket_prices_service.dart';
@@ -101,7 +102,7 @@ class CryptoBloc extends Bloc<CryptoEvent, CryptoState> {
     // Registrar el evento para actualizar los precios
     on<PricesUpdated>(_onPricesUpdated);
 
-    // Registra el evento para reconexión
+    // Registrar el evento para reconexión
     on<ReconnectWebSocket>(_onReconnectWebSocket);
 
     // Disparar el evento inicial de carga de criptomonedas al crear el BLoC
@@ -129,8 +130,12 @@ class CryptoBloc extends Bloc<CryptoEvent, CryptoState> {
       _pricesSubscription = _pricesService.pricesStream.listen((prices) {
         // Disparar un evento con los precios actualizados
         add(PricesUpdated(prices: prices));
-      });
-
+      },
+      onError: (error) {
+        // Se dispara la reconexión automáticamente en caso de error
+        add(const ReconnectWebSocket());
+      },
+      );
       // Emitir el estado cargado con la lista de criptomonedas y colores predeterminados
       emit(
         CryptoLoaded(
@@ -190,44 +195,48 @@ class CryptoBloc extends Bloc<CryptoEvent, CryptoState> {
     }
   }
 
-  // Handler para reconectar el WebSocket
+  /// Handler para reconectar el WebSocket con optimización de retroceso exponencial y jitter
   Future<void> _onReconnectWebSocket(
-    ReconnectWebSocket event, // Evento que desencadena la reconexión
-    Emitter<CryptoState> emit, // Función para emitir nuevos estados del BLoC
+    ReconnectWebSocket event,
+    Emitter<CryptoState> emit,
   ) async {
     await _pricesSubscription.cancel();
 
-    int retryCount = 0; // Contador de reintentos
-    const maxRetries = 5; // Número máximo de intentos de reconexión
-    const backoffFactor = 2; // Factor de aumento exponencial del tiempo de espera
-    int delay = 1; // Tiempo inicial de espera en segundos
+    int retryCount = 0;
+    const int maxRetries = 5; // Número máximo de intentos de reconexión
+    const int baseDelay = 1; // Tiempo base en segundos
+    final random = Random();
+    bool reconnected = false;
 
-    while (retryCount < maxRetries) {
+    while (retryCount < maxRetries && !reconnected) {
       try {
-        // Intentar reconectar el WebSocket después de un pequeño retraso
-        await Future.delayed(Duration(seconds: delay));
+        // Calcular el tiempo de espera usando retroceso exponencial con jitter
+        final double delaySeconds = baseDelay * pow(2, retryCount) + random.nextDouble();
+        await Future.delayed(Duration(milliseconds: (delaySeconds * 1000).round()));
 
-        // Llamada para reconectar el WebSocket
+        // Intentar reconectar el WebSocket
         _pricesService.reconnect();
 
-        // Reactivar la suscripción al stream de precios
+        // Reactivar la suscripción al stream de precios, con reconexión automática en caso de error
         _pricesSubscription = _pricesService.pricesStream.listen((prices) {
-          // Emitir el evento con los precios actualizados
           add(PricesUpdated(prices: prices));
+        }, onError: (error) {
+          // Disparar nuevamente el evento de reconexión si ocurre otro error
+          add(const ReconnectWebSocket());
         });
 
-        return; // Si la reconexión es exitosa, salir del método
+        reconnected = true;
       } catch (e) {
-        // Si falla la reconexión, incrementar el contador de reintentos
         retryCount++;
-        // Aumentar el tiempo de espera exponencialmente (1, 2, 4, 8, 16 segundos, etc.)
-        delay *= backoffFactor;
       }
     }
 
-    emit(
-      CryptoError(message: "No se pudo reconectar después de varios intentos."),
-    );
+    // Notificar al usuario si se alcanzó el máximo número de intentos sin éxito
+    if (!reconnected) {
+      emit(
+        CryptoError(message: "No se pudo reconectar después de $maxRetries intentos."),
+      );
+    }
   }
 
   /// Método que se llama al cerrar el BLoC para liberar recursos

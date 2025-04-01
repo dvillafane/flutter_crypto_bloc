@@ -39,7 +39,7 @@ class CryptoCard extends StatelessWidget {
         title: Text(
           '${crypto.name} (${crypto.symbol})',
           style: const TextStyle(
-            fontSize: 18.0, // Tamaño de fuente más grande.
+            fontSize: 19.0, // Tamaño de fuente más grande.
             fontWeight: FontWeight.w600, // Peso de fuente intermedio.
             color: Colors.black87, // Color oscuro para mayor contraste.
           ), // Estilo en negrita.
@@ -50,7 +50,7 @@ class CryptoCard extends StatelessWidget {
           duration: const Duration(milliseconds: 400),
           // Estilo del texto del precio con el color variable según la variación.
           style: TextStyle(
-            fontSize: 16, // Tamaño de fuente.
+            fontSize: 14, // Tamaño de fuente.
             fontWeight: FontWeight.bold, // Texto en negrita.
             color:
                 priceColor, // Color dinámico que refleja la variación del precio.
