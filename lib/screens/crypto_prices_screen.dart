@@ -38,8 +38,19 @@ class _CryptoPricesScreenState extends State<CryptoPricesScreen> {
             pricesService: WebSocketPricesService(),
           ),
       child: Scaffold(
+        backgroundColor: Colors.black,
         appBar: AppBar(
-          title: const Text('Precios de Criptomonedas'),
+          backgroundColor: Colors.black,
+          elevation: 0,
+          title: const Text(
+            'CRIPTOMONEDAS',
+            style: TextStyle(
+              color: Colors.white,
+              fontSize: 24,
+              fontWeight: FontWeight.bold,
+            ),
+          ),
+          centerTitle: true,
           actions: [
             Builder(
               builder: (context) {
@@ -49,22 +60,31 @@ class _CryptoPricesScreenState extends State<CryptoPricesScreen> {
                   onPressed: () {
                     context.read<CryptoBloc>().add(ReconnectWebSocket());
                   },
+                  color: const Color(0xFFD2E4FF),
                 );
               },
             ),
           ],
         ),
         body: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             // Campo de búsqueda para filtrar criptomonedas
             Padding(
               padding: const EdgeInsets.all(8.0),
               child: TextField(
                 controller: _searchController,
-                decoration: const InputDecoration(
+                style: const TextStyle(color: Colors.white),
+                decoration: InputDecoration(
                   hintText: "Buscar criptomoneda...",
-                  prefixIcon: Icon(Icons.search),
-                  border: OutlineInputBorder(),
+                  hintStyle: const TextStyle(color: Colors.grey),
+                  prefixIcon: const Icon(Icons.search, color: Colors.white),
+                  filled: true,
+                  fillColor: Colors.grey[900],
+                  border: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(20),
+                    borderSide: BorderSide.none,
+                  ),
                 ),
                 onChanged: (value) {
                   // Actualizar el estado al cambiar el texto
@@ -102,13 +122,21 @@ class _CryptoPricesScreenState extends State<CryptoPricesScreen> {
                         return CryptoCard(
                           crypto: crypto,
                           priceColor:
-                              state.priceColors[crypto.id] ?? Colors.black,
+                              state.priceColors[crypto.id] ?? Colors.white,
+                          cardColor: const Color(
+                            0xFFD2E4FF,
+                          ), // Color de fondo de la tarjeta
                         );
                       },
                     );
                   } else if (state is CryptoError) {
                     // Muestra un mensaje de error en caso de fallo
-                    return Center(child: Text(state.message));
+                    return Center(
+                      child: Text(
+                        state.message,
+                        style: const TextStyle(color: Colors.red),
+                      ),
+                    );
                   }
                   // Devuelve un contenedor vacío si no hay estado
                   return Container();

@@ -13,12 +13,9 @@ class HomeScreen extends StatelessWidget {
     // DefaultTabController permite gestionar una vista con pestañas.
     return DefaultTabController(
       length:
-          2, // Número de pestañas a controlar (aunque actualmente solo se utiliza una).
+          1, // Número de pestañas a controlar
       child: Scaffold(
-        // AppBar con título y opciones de navegación.
-        appBar: AppBar(title: const Text('CoinCap API 2.0 Demo')),
         // Cuerpo de la pantalla que muestra las diferentes vistas asociadas a cada pestaña.
-        // Actualmente se muestra únicamente la pantalla de precios de criptomonedas.
         body: const TabBarView(children: [CryptoPricesScreen()]),
       ),
     );
