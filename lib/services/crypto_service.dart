@@ -16,15 +16,19 @@ class CryptoService {
 
     // Verifica que la respuesta del servidor sea exitosa (código 200).
     if (response.statusCode == 200) {
-      // Decodifica el cuerpo de la respuesta (JSON) a un mapa de datos.
-      final data = json.decode(response.body);
-      // Extrae la lista de criptomonedas que se encuentra en el campo 'data' del JSON.
-      final List<dynamic> cryptoList = data['data'];
-      // Mapea cada elemento de la lista a un objeto Crypto usando el constructor fromJson y retorna la lista resultante.
-      return cryptoList.map((json) => Crypto.fromJson(json)).toList();
+      try {
+        // Decodifica el cuerpo de la respuesta (JSON) a un mapa de datos.
+        final data = json.decode(response.body);
+        // Extrae la lista de criptomonedas que se encuentra en el campo 'data' del JSON.
+        final List<dynamic> cryptoList = data['data'];
+        // Mapea cada elemento de la lista a un objeto Crypto usando el constructor fromJson y retorna la lista resultante.
+        return cryptoList.map((json) => Crypto.fromJson(json)).toList();
+      } catch (e) {
+        throw Exception('Error al procesar los datos de criptomonedas: $e');
+      }
     } else {
       // Si la respuesta no fue exitosa, lanza una excepción con un mensaje de error.
-      throw Exception('Error al obtener criptomonedas');
+      throw Exception('Error al obtener criptomonedas: ${response.statusCode}');
     }
   }
 }

@@ -5,11 +5,18 @@ import 'package:web_socket_channel/io.dart';
 
 // Clase que se encarga de conectar y recibir actualizaciones de precios a través de WebSocket.
 class WebSocketPricesService {
+  late IOWebSocketChannel _channel;
+
+  WebSocketPricesService() {
+    _connect();
+  }
   // Se crea y establece la conexión WebSocket con la URL especificada.
   // En este caso, se conecta a la API de CoinCap para obtener precios de todos los activos.
-  final _channel = IOWebSocketChannel.connect(
-    'wss://ws.coincap.io/prices?assets=ALL',
-  );
+  void _connect() {
+    _channel = IOWebSocketChannel.connect(
+      'wss://ws.coincap.io/prices?assets=ALL',
+    );
+  }
 
   // Getter que retorna un Stream de mapas, donde cada mapa contiene pares clave-valor (nombre del activo y su precio).
   Stream<Map<String, double>> get pricesStream async* {
@@ -27,6 +34,12 @@ class WebSocketPricesService {
       // Emite el mapa de datos procesado a través del stream.
       yield parsedData;
     }
+  }
+
+  // Método para reconectar el WebSocket
+  void reconnect() {
+    _channel.sink.close();
+    _connect();
   }
 
   // Método para cerrar la conexión WebSocket y liberar recursos.

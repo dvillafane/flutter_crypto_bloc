@@ -25,6 +25,8 @@ abstract class CryptoState {}
 /// Estado que representa que las criptomonedas están en proceso de carga
 class CryptoLoading extends CryptoState {}
 
+class ReconnectWebSocket extends CryptoEvent {}
+
 /// Estado que indica que la carga de criptomonedas se ha completado
 class CryptoLoaded extends CryptoState {
   final List<Crypto> cryptos;
@@ -32,6 +34,8 @@ class CryptoLoaded extends CryptoState {
 
   /// Constructor para inicializar el estado con la lista de criptomonedas y colores
   CryptoLoaded({required this.cryptos, required this.priceColors});
+
+  get prices => null;
 }
 
 /// Estado que representa un error durante la carga o actualización de criptomonedas
@@ -67,6 +71,9 @@ class CryptoBloc extends Bloc<CryptoEvent, CryptoState> {
 
     // Registrar el evento para actualizar los precios
     on<PricesUpdated>(_onPricesUpdated);
+
+    // Registra el nuevo evento para reconexión
+    on<ReconnectWebSocket>(_onReconnectWebSocket);
 
     // Disparar el evento inicial de carga de criptomonedas al crear el BLoC
     add(LoadCryptos());
@@ -153,6 +160,47 @@ class CryptoBloc extends Bloc<CryptoEvent, CryptoState> {
       // Emitir el nuevo estado con las criptomonedas actualizadas y los colores calculados
       emit(CryptoLoaded(cryptos: updatedCryptos, priceColors: updatedColors));
     }
+  }
+
+  // Handler para reconectar el WebSocket
+  Future<void> _onReconnectWebSocket(
+    ReconnectWebSocket event, // Evento que desencadena la reconexión
+    Emitter<CryptoState> emit, // Función para emitir nuevos estados del BLoC
+  ) async {
+    await _pricesSubscription.cancel();
+
+    int retryCount = 0; // Contador de reintentos
+    const maxRetries = 5; // Número máximo de intentos de reconexión
+    const backoffFactor =
+        2; // Factor de aumento exponencial del tiempo de espera
+    int delay = 1; // Tiempo inicial de espera en segundos
+
+    while (retryCount < maxRetries) {
+      try {
+        // Intentar reconectar el WebSocket después de un pequeño retraso
+        await Future.delayed(Duration(seconds: delay));
+
+        // Llamada para reconectar el WebSocket
+        _pricesService.reconnect();
+
+        // Reactivar la suscripción al stream de precios
+        _pricesSubscription = _pricesService.pricesStream.listen((prices) {
+          // Emitir el evento con los precios actualizados
+          add(PricesUpdated(prices: prices));
+        });
+
+        return; // Si la reconexión es exitosa, sale del método
+      } catch (e) {
+        // Si falla la reconexión, incrementar el contador de reintentos
+        retryCount++;
+        // Aumenta el tiempo de espera exponencialmente (1, 2, 4, 8, 16 segundos, etc.)
+        delay *= backoffFactor;
+      }
+    }
+
+    emit(
+      CryptoError(message: "No se pudo reconectar después de varios intentos."),
+    );
   }
 
   /// Método que se llama al cerrar el BLoC para liberar recursos

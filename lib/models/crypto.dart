@@ -18,15 +18,14 @@ class Crypto {
 
   // Método de fábrica que crea una instancia de Crypto a partir de un Map (JSON).
   factory Crypto.fromJson(Map<String, dynamic> json) {
-  return Crypto(
-    id: json['id'],
-    name: json['name'],
-    symbol: json['symbol'].toUpperCase(),
-    // Convertir el valor a string para que tryParse funcione correctamente
-    price: double.tryParse(json['priceUsd'].toString()) ?? 0,
-    logoUrl: 'https://assets.coincap.io/assets/icons/${json['symbol'].toLowerCase()}@2x.png',
-  );
-}
-
-
+    return Crypto(
+      id: json['id'],
+      name: json['name'],
+      symbol: json['symbol'].toUpperCase(),
+      // Convertir el valor a string para que tryParse funcione correctamente
+      price: double.tryParse(json['priceUsd'].toString()) ?? 0,
+      logoUrl:
+          'https://assets.coincap.io/assets/icons/${json['symbol'].toLowerCase()}@2x.png',
+    );
+  }
 }

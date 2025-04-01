@@ -1,70 +1,121 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import '../blocs/crypto_bloc.dart';
+import '../models/crypto.dart';
 import '../services/crypto_service.dart';
 import '../services/websocket_prices_service.dart';
 import '../widgets/crypto_card.dart';
 
-/// Pantalla principal para mostrar los precios de las criptomonedas
-class CryptoPricesScreen extends StatelessWidget {
+/// Pantalla principal para mostrar los precios de las criptomonedas con buscador
+class CryptoPricesScreen extends StatefulWidget {
   const CryptoPricesScreen({super.key});
+
+  @override
+  State<CryptoPricesScreen> createState() => _CryptoPricesScreenState();
+}
+
+class _CryptoPricesScreenState extends State<CryptoPricesScreen> {
+  // Variable para almacenar el texto ingresado en el campo de búsqueda
+  String searchQuery = "";
+
+  // Controlador para el campo de búsqueda
+  final TextEditingController _searchController = TextEditingController();
+
+  @override
+  void dispose() {
+    // Liberar recursos asociados al controlador cuando el widget se elimine
+    _searchController.dispose();
+    super.dispose();
+  }
 
   @override
   Widget build(BuildContext context) {
     return BlocProvider(
-      // Crea una instancia del BLoC de criptomonedas y la proporciona al árbol de widgets
+      // Proporciona el BLoC de criptomonedas al árbol de widgets
       create:
           (_) => CryptoBloc(
-            cryptoService:
-                CryptoService(), // Servicio para obtener datos iniciales
-            pricesService:
-                WebSocketPricesService(), // Servicio para recibir precios en tiempo real
+            cryptoService: CryptoService(),
+            pricesService: WebSocketPricesService(),
           ),
       child: Scaffold(
         appBar: AppBar(
-          title: const Text(
-            'Precios de Criptomonedas',
-          ), // Título de la pantalla
+          title: const Text('Precios de Criptomonedas'),
+          actions: [
+            Builder(
+              builder: (context) {
+                return IconButton(
+                  // Botón para recargar el WebSocket cuando se presiona
+                  icon: const Icon(Icons.refresh),
+                  onPressed: () {
+                    context.read<CryptoBloc>().add(ReconnectWebSocket());
+                  },
+                );
+              },
+            ),
+          ],
         ),
-        body: BlocBuilder<CryptoBloc, CryptoState>(
-          builder: (context, state) {
-            // Mostrar un indicador de carga mientras se obtienen los datos
-            if (state is CryptoLoading) {
-              return const Center(child: CircularProgressIndicator());
-            }
-            // Mostrar la lista de criptomonedas cuando los datos están cargados
-            else if (state is CryptoLoaded) {
-              return ListView.builder(
-                padding: const EdgeInsets.all(
-                  8.0,
-                ), // Espaciado alrededor de la lista
-                itemCount:
-                    state.cryptos.length, // Número de elementos en la lista
-                itemBuilder: (context, index) {
-                  final crypto =
-                      state
-                          .cryptos[index]; // Criptomoneda actual en la iteración
-
-                  // Retorna una tarjeta con la información de la criptomoneda
-                  return CryptoCard(
-                    crypto: crypto,
-                    priceColor:
-                        state.priceColors[crypto.id] ??
-                        Colors.black, // Color del precio (sube/baja)
-                  );
+        body: Column(
+          children: [
+            // Campo de búsqueda para filtrar criptomonedas
+            Padding(
+              padding: const EdgeInsets.all(8.0),
+              child: TextField(
+                controller: _searchController,
+                decoration: const InputDecoration(
+                  hintText: "Buscar criptomoneda...",
+                  prefixIcon: Icon(Icons.search),
+                  border: OutlineInputBorder(),
+                ),
+                onChanged: (value) {
+                  // Actualizar el estado al cambiar el texto
+                  setState(() {
+                    searchQuery = value;
+                  });
                 },
-              );
-            }
-            // Mostrar un mensaje de error si la carga falla
-            else if (state is CryptoError) {
-              return Center(
-                child: Text(state.message),
-              ); // Mensaje de error proporcionado por el estado
-            }
+              ),
+            ),
+            // Lista filtrada de criptomonedas
+            Expanded(
+              child: BlocBuilder<CryptoBloc, CryptoState>(
+                builder: (context, state) {
+                  if (state is CryptoLoading) {
+                    // Muestra un indicador de carga mientras se obtienen los datos
+                    return const Center(child: CircularProgressIndicator());
+                  } else if (state is CryptoLoaded) {
+                    // Filtra la lista de criptomonedas según la búsqueda
+                    List<Crypto> filteredCryptos = state.cryptos;
+                    if (searchQuery.isNotEmpty) {
+                      filteredCryptos =
+                          filteredCryptos.where((crypto) {
+                            return crypto.name.toLowerCase().contains(
+                              searchQuery.toLowerCase(),
+                            );
+                          }).toList();
+                    }
 
-            // Retornar un contenedor vacío en caso de que no se cumpla ninguna condición
-            return Container();
-          },
+                    // Construye la lista de criptomonedas filtradas
+                    return ListView.builder(
+                      padding: const EdgeInsets.all(8.0),
+                      itemCount: filteredCryptos.length,
+                      itemBuilder: (context, index) {
+                        final crypto = filteredCryptos[index];
+                        return CryptoCard(
+                          crypto: crypto,
+                          priceColor:
+                              state.priceColors[crypto.id] ?? Colors.black,
+                        );
+                      },
+                    );
+                  } else if (state is CryptoError) {
+                    // Muestra un mensaje de error en caso de fallo
+                    return Center(child: Text(state.message));
+                  }
+                  // Devuelve un contenedor vacío si no hay estado
+                  return Container();
+                },
+              ),
+            ),
+          ],
         ),
       ),
     );
