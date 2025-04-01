@@ -164,7 +164,7 @@ class CryptoBloc extends Bloc<CryptoEvent, CryptoState> {
         final double newPrice = event.prices[crypto.id] ?? crypto.price;
 
         // Determinar el color basado en la variación de precio
-        Color color = Colors.black;
+        Color color = const Color(0xFFFFFFFF);
         if (newPrice > oldPrice) {
           color = Colors.green; // Verde si el precio sube
         } else if (newPrice < oldPrice) {

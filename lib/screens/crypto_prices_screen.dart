@@ -124,7 +124,7 @@ class _CryptoPricesScreenState extends State<CryptoPricesScreen> {
                           priceColor:
                               state.priceColors[crypto.id] ?? Colors.white,
                           cardColor: const Color(
-                            0xFFD2E4FF,
+                            0xFF303030,
                           ), // Color de fondo de la tarjeta
                         );
                       },
