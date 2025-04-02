@@ -1,4 +1,6 @@
-class CryptoDetail {
+import 'package:equatable/equatable.dart';
+
+class CryptoDetail extends Equatable {
   final String id;
   final int rank;
   final String symbol;
@@ -10,7 +12,7 @@ class CryptoDetail {
   final double priceUsd;
   final String logoUrl;
 
-  CryptoDetail({
+  const CryptoDetail({
     required this.id,
     required this.rank,
     required this.symbol,
@@ -34,8 +36,21 @@ class CryptoDetail {
       marketCapUsd: double.tryParse(json['marketCapUsd']) ?? 0,
       volumeUsd24Hr: double.tryParse(json['volumeUsd24Hr']) ?? 0,
       priceUsd: double.tryParse(json['priceUsd']) ?? 0,
-      logoUrl:
-          'https://assets.coincap.io/assets/icons/${json['symbol'].toLowerCase()}@2x.png',
+      logoUrl: 'https://assets.coincap.io/assets/icons/${json['symbol'].toLowerCase()}@2x.png',
     );
   }
+
+  @override
+  List<Object?> get props => [
+        id,
+        rank,
+        symbol,
+        name,
+        supply,
+        maxSupply,
+        marketCapUsd,
+        volumeUsd24Hr,
+        priceUsd,
+        logoUrl,
+      ];
 }

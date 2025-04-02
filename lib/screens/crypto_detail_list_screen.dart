@@ -1,7 +1,7 @@
 // screens/crypto_detail_list_screen.dart
 import 'package:flutter/material.dart';
-import '../models/crypto.dart';
-import '../services/crypto_service.dart';
+import 'package:flutter_bloc/flutter_bloc.dart';
+import '../blocs/crypto_bloc.dart';
 import '../widgets/crypto_details_card.dart';
 import 'crypto_detail_screen.dart';
 
@@ -13,14 +13,7 @@ class CryptoDetailListScreen extends StatefulWidget {
 }
 
 class _CryptoDetailListScreenState extends State<CryptoDetailListScreen> {
-  late Future<List<Crypto>> _cryptosFuture;
   String _searchQuery = '';
-
-  @override
-  void initState() {
-    super.initState();
-    _cryptosFuture = CryptoService().fetchCryptos();
-  }
 
   @override
   Widget build(BuildContext context) {
@@ -51,22 +44,14 @@ class _CryptoDetailListScreenState extends State<CryptoDetailListScreen> {
             ),
             const SizedBox(height: 8),
             Expanded(
-              child: FutureBuilder<List<Crypto>>(
-                future: _cryptosFuture,
-                builder: (context, snapshot) {
-                  if (snapshot.connectionState == ConnectionState.waiting) {
+              child: BlocBuilder<CryptoBloc, CryptoState>(
+                builder: (context, state) {
+                  if (state is CryptoLoading) {
                     return const Center(child: CircularProgressIndicator());
-                  } else if (snapshot.hasError) {
-                    return Center(
-                      child: Text(
-                        'Error: \${snapshot.error}',
-                        style: const TextStyle(color: Colors.red),
-                      ),
-                    );
-                  } else if (snapshot.hasData) {
-                    final cryptos = snapshot.data!
-                        .where((crypto) => crypto.name.toLowerCase().contains(_searchQuery) || crypto.symbol.toLowerCase().contains(_searchQuery))
-                        .toList();
+                  } else if (state is CryptoLoaded) {
+                    final filteredCryptos = state.cryptos.where((crypto) =>
+                        crypto.name.toLowerCase().contains(_searchQuery) ||
+                        crypto.symbol.toLowerCase().contains(_searchQuery)).toList();
                     return GridView.builder(
                       padding: const EdgeInsets.all(8.0),
                       gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
@@ -75,9 +60,9 @@ class _CryptoDetailListScreenState extends State<CryptoDetailListScreen> {
                         crossAxisSpacing: 8,
                         mainAxisSpacing: 8,
                       ),
-                      itemCount: cryptos.length,
+                      itemCount: filteredCryptos.length,
                       itemBuilder: (context, index) {
-                        final crypto = cryptos[index];
+                        final crypto = filteredCryptos[index];
                         return CryptoDetailsCard(
                           crypto: crypto,
                           onTap: () {
@@ -90,6 +75,13 @@ class _CryptoDetailListScreenState extends State<CryptoDetailListScreen> {
                           },
                         );
                       },
+                    );
+                  } else if (state is CryptoError) {
+                    return Center(
+                      child: Text(
+                        'Error: ${state.message}',
+                        style: const TextStyle(color: Colors.red),
+                      ),
                     );
                   }
                   return Container();
