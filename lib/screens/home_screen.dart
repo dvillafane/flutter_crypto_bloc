@@ -1,22 +1,41 @@
-// Importa el paquete material de Flutter, que provee componentes de UI.
+// screens/home_screen.dart
 import 'package:flutter/material.dart';
-// Importa la pantalla que muestra los precios de criptomonedas.
+import 'package:flutter_crypto/screens/crypto_detail_list_screen.dart';
 import 'crypto_prices_screen.dart';
 
-// Definición del widget HomeScreen que es de tipo StatelessWidget (no tiene estado mutable).
 class HomeScreen extends StatelessWidget {
   const HomeScreen({super.key});
 
-  // Método build que construye la interfaz de usuario del widget.
   @override
   Widget build(BuildContext context) {
-    // DefaultTabController permite gestionar una vista con pestañas.
     return DefaultTabController(
-      length:
-          1, // Número de pestañas a controlar
+      length: 2, // Pestañas: Precios y Detalles
       child: Scaffold(
-        // Cuerpo de la pantalla que muestra las diferentes vistas asociadas a cada pestaña.
-        body: const TabBarView(children: [CryptoPricesScreen()]),
+        appBar: AppBar(
+          backgroundColor: Colors.black,
+          title: const Text(
+            'CRIPTOMONEDAS',
+            style: TextStyle(
+              color: Colors.white,
+              fontSize: 24,
+              fontWeight: FontWeight.bold,
+            ),
+          ),
+          centerTitle: true,
+          bottom: const TabBar(
+            indicatorColor: Colors.blueAccent,
+            tabs: [
+              Tab(text: "Precios"),
+              Tab(text: "Detalles"),
+            ],
+          ),
+        ),
+        body: const TabBarView(
+          children: [
+            CryptoPricesScreen(),
+            CryptoDetailListScreen(),
+          ],
+        ),
       ),
     );
   }

@@ -1,0 +1,92 @@
+estructura del prototipo Crypto por secciones y su funcionamiento general:
+
+1. Arquitectura General
+La aplicación está construida en Flutter y sigue el patrón BLoC para separar la lógica de negocio (gestión de estados y eventos) de la interfaz de usuario. Además, se usa el paquete Equatable para facilitar la comparación de objetos en los estados y eventos.
+
+
+2. Capa de Lógica: El BLoC (bloc/crypto_bloc.dart)
+Eventos (CryptoEvent):
+Define los distintos eventos que pueden ocurrir:
+
+LoadCryptos: Se dispara al iniciar la aplicación para cargar la lista de criptomonedas.
+PricesUpdated: Se activa cada vez que llegan nuevos precios a través del WebSocket.
+ReconnectWebSocket: Se utiliza para intentar reconectar el WebSocket en caso de error.
+
+Estados (CryptoState):
+Representa los distintos estados de la aplicación:
+
+CryptoLoading: Mientras se cargan los datos.
+CryptoLoaded: Cuando ya se han cargado los datos, incluyendo la lista de criptomonedas y un mapa de colores que indican la variación de precio.
+CryptoError: En caso de error en la carga o actualización.
+
+Lógica del BLoC (CryptoBloc):
+En el constructor, se inicializan los servicios para obtener datos (API y WebSocket) y se dispara el evento de carga inicial.
+
+_onLoadCryptos: Se encarga de obtener la lista de criptomonedas mediante el CryptoService, ordenar la lista y suscribirse al stream de precios del WebSocket.
+_onPricesUpdated: Actualiza los precios y determina los colores (verde, rojo o negro) según si el precio sube, baja o se mantiene, y vuelve a ordenar la lista.
+_onReconnectWebSocket: Implementa la reconexión del WebSocket usando un algoritmo de retroceso exponencial con jitter, intentando reconectar hasta un número máximo de veces.
+
+
+3. Modelo de Datos (models/crypto.dart)
+Clase Crypto:
+Representa una criptomoneda con propiedades como id, name, symbol, price y logoUrl.
+Incluye un método de fábrica fromJson para crear una instancia a partir de un JSON recibido desde la API.
+
+
+4. Interfaz de Usuario
+a. Pantallas
+CryptoPricesScreen (screens/crypto_prices_screen.dart):
+
+Es la pantalla principal que muestra la lista de criptomonedas.
+Utiliza un campo de búsqueda para filtrar la lista por el nombre de la criptomoneda.
+Se integra con el BLoC usando BlocProvider y BlocBuilder para reaccionar a los cambios de estado (cargando, cargado o error).
+Permite reconectar el WebSocket mediante un botón de refrescar en la app bar.
+
+HomeScreen (screens/home_screen.dart):
+
+Es un widget simple que encapsula la pantalla de precios dentro de un DefaultTabController.
+Facilita la extensión a más pestañas si se necesitara en el futuro.
+
+b. Widgets
+CryptoCard (widgets/crypto_card.dart):
+
+Es un widget sin estado que representa una tarjeta individual para cada criptomoneda.
+Muestra el logo, nombre, símbolo y precio.
+Utiliza AnimatedDefaultTextStyle para animar el cambio de color del precio, lo que proporciona feedback visual en tiempo real sobre la variación de precio.
+
+
+5. Servicios
+CryptoService (services/crypto_service.dart):
+
+Se encarga de realizar una petición HTTP a la API (CoinCap) para obtener los datos iniciales de las criptomonedas.
+Convierte la respuesta JSON en una lista de objetos Crypto.
+
+WebSocketPricesService (services/websocket_prices_service.dart):
+
+Gestiona la conexión a un WebSocket para recibir actualizaciones en tiempo real de los precios de todas las criptomonedas.
+Ofrece un stream que emite mapas con los precios actualizados.
+Incluye métodos para reconectar y cerrar la conexión cuando ya no es necesaria.
+
+
+6. Punto de Entrada: main.dart
+main.dart:
+
+Es el punto de entrada de la aplicación.
+Se configura el MaterialApp con un tema basado en Material 3 y se define la pantalla principal (HomeScreen).
+
+
+
+Resumen para Explicar el Prototipo
+Cuando te pregunten, podrías decir algo como:
+
+"Este prototipo es una aplicación Flutter que muestra precios de criptomonedas en tiempo real. Utiliza el patrón BLoC para separar la lógica de negocio de la interfaz.
+
+La capa de lógica está en el CryptoBloc, que gestiona eventos como la carga inicial de datos, la actualización de precios recibida vía WebSocket y la reconexión en caso de error.
+
+Los datos se obtienen de dos servicios: uno que hace peticiones HTTP a la API de CoinCap para cargar la lista de criptomonedas y otro que se conecta a un WebSocket para actualizar los precios en tiempo real.
+
+La interfaz se compone de una pantalla principal (CryptoPricesScreen) que incluye un campo de búsqueda para filtrar las criptomonedas y una lista de tarjetas (CryptoCard) que muestran el logo, nombre, símbolo y precio de cada criptomoneda.
+
+Finalmente, HomeScreen actúa como contenedor y main.dart inicia la aplicación configurando el tema y la pantalla principal."
+
+Esta estructura modular y clara permite mantener separada la lógica, la visualización y la gestión de datos, facilitando el mantenimiento y la escalabilidad del prototipo.
